@@ -8,9 +8,9 @@ public class LevelSelectionController : MonoBehaviour
 {
   [SerializeField] private Transform player;
   [SerializeField] private LevelTooltipController tooltip;
-  [SerializeField] private LevelNode[] allLevels;
+  [SerializeField] private MapNode[] allLevels;
 
-  private LevelNode selectedLevel;
+  private MapNode selectedLevel;
   private bool isLoading = false;
 
   private PlayerController controls;
@@ -68,7 +68,7 @@ public class LevelSelectionController : MonoBehaviour
   {
     int currLevel = GameSession.LastLevel;
 
-    LevelNode startNode = System.Array.Find(allLevels, level => level.Data.LevelNumber == currLevel);
+    MapNode startNode = System.Array.Find(allLevels, level => level.Data.LevelNumber == currLevel);
 
     if (!startNode)
     {
@@ -80,10 +80,10 @@ public class LevelSelectionController : MonoBehaviour
     SelectLevel (startNode);
   }
 
-  private void SelectLevel(LevelNode node)
+  private void SelectLevel(MapNode node)
   {
     selectedLevel = node;
-    player.position = node.PlayerAnchor.position;
+    player.position = node.StopPosition;
     tooltip.transform.position = node.TooltipAnchor.position;
     tooltip.Show(node.Data);
   }
@@ -113,29 +113,29 @@ public class LevelSelectionController : MonoBehaviour
 
     for (int i = 0; i < allLevels.Length; i++)
     {
-      var levelNode = allLevels[i];
+      var mapNode = allLevels[i];
 
-      if (!levelNode)
+      if (!mapNode)
       {
         Debug.LogError($"Null in {i+1}° array position", this);
         isValid = false;
         continue;
       }
 
-      if (!levelNode.IsValid || !levelNode.Data.IsValid)
+      if (!mapNode.IsValid || !mapNode.Data.IsValid)
       {
-        Debug.LogError($"Level Node isn't configured correctly at {i+1}° array position\nNode Name: {levelNode.name}", this);
+        Debug.LogError($"Level Node isn't configured correctly at {i+1}° array position\nNode Name: {mapNode.name}", this);
         isValid = false;
         continue;
       }
-      if (!Application.CanStreamedLevelBeLoaded(levelNode.Data.SceneName))
+      if (!Application.CanStreamedLevelBeLoaded(mapNode.Data.SceneName))
       {
-        Debug.LogError($"Scene Name invalid in {i+1}° array position.\nNode Name: {levelNode.name}\n-Scene Name: {levelNode.Data.SceneName}", this);
+        Debug.LogError($"Scene Name invalid in {i+1}° array position.\nNode Name: {mapNode.name}\n-Scene Name: {mapNode.Data.SceneName}", this);
         isValid = false;
       }
-      if (!levelNumbers.Add(levelNode.Data.LevelNumber))
+      if (!levelNumbers.Add(mapNode.Data.LevelNumber))
       {
-        Debug.LogError($"Level Number duplicated in {i+1}° array position.\nNode Name: {levelNode.name}\n- Level Number: {levelNode.Data.LevelNumber}", this);
+        Debug.LogError($"Level Number duplicated in {i+1}° array position.\nNode Name: {mapNode.name}\n- Level Number: {mapNode.Data.LevelNumber}", this);
         isValid = false;
       }
     }
