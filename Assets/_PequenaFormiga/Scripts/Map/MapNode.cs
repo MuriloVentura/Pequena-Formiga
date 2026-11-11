@@ -79,7 +79,7 @@ public class MapNode : MonoBehaviour
       return;
 
     Gizmos.color = HasLevel ? Color.yellow : Color.cyan;
-    Gizmos.DrawWireSphere(StopPosition, 20f);
+    Gizmos.DrawWireSphere(StopPosition, 2f);
 
     foreach (var edge in mapEdges)
     {
