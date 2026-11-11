@@ -2,13 +2,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
-using UnityEngine.Serialization;
 
 public class LevelSelectionController : MonoBehaviour
 {
   [SerializeField] private Transform player;
   [SerializeField] private LevelTooltipController tooltip;
-  [SerializeField] private MapNode[] allLevels;
+  [Tooltip("O primeiro elemento é o nó inicial")]
+  [SerializeField] private MapNode[] allNodes;
 
   private MapNode selectedLevel;
   private bool isLoading = false;
@@ -29,7 +29,7 @@ public class LevelSelectionController : MonoBehaviour
       Debug.LogError("Tooltip Script not assigned", this);
       isValid = false;
     }
-    if (!ValidateLevelArray())
+    if (!ValidateNodeArray())
     {
       isValid = false;
     }
@@ -68,22 +68,29 @@ public class LevelSelectionController : MonoBehaviour
   {
     int currLevel = GameSession.LastLevel;
 
-    MapNode startNode = System.Array.Find(allLevels, level => level.Data.LevelNumber == currLevel);
+    MapNode startNode = System.Array.Find(allNodes, level => level.HasLevel && level.Data.LevelNumber == currLevel);
 
     if (!startNode)
     {
       if (currLevel >= 0)
-        Debug.LogWarning($"Level {currLevel} not found on map, using first level", this);
-      startNode = allLevels[0];
+        Debug.LogWarning($"Level {currLevel} not found on map, using first node", this);
+      startNode = allNodes[0];
     }
 
-    SelectLevel (startNode);
+    SelectLevel(startNode);
   }
 
   private void SelectLevel(MapNode node)
   {
-    selectedLevel = node;
     player.position = node.StopPosition;
+
+    if (!node.HasLevel)
+    {
+      selectedLevel = null;
+      tooltip.Hide();
+      return;
+    }
+    selectedLevel = node;
     tooltip.transform.position = node.TooltipAnchor.position;
     tooltip.Show(node.Data);
   }
@@ -94,16 +101,16 @@ public class LevelSelectionController : MonoBehaviour
       return;
     if (!selectedLevel)
       return;
-
+    
     isLoading = true;
     SceneManager.LoadScene(selectedLevel.Data.SceneName);
   } 
 
-  private bool ValidateLevelArray()
+  private bool ValidateNodeArray()
   {
-    if (!(allLevels.Length > 0))
+    if (!(allNodes.Length > 0))
     {
-      Debug.LogError($"Level Array Empty", this);
+      Debug.LogError($"Node Array Empty", this);
       return false;
     }
 
@@ -111,9 +118,9 @@ public class LevelSelectionController : MonoBehaviour
 
     HashSet<int> levelNumbers = new HashSet<int>();
 
-    for (int i = 0; i < allLevels.Length; i++)
+    for (int i = 0; i < allNodes.Length; i++)
     {
-      var mapNode = allLevels[i];
+      var mapNode = allNodes[i];
 
       if (!mapNode)
       {
@@ -122,12 +129,15 @@ public class LevelSelectionController : MonoBehaviour
         continue;
       }
 
-      if (!mapNode.IsValid || !mapNode.Data.IsValid)
+      if (!mapNode.IsValid)
       {
-        Debug.LogError($"Level Node isn't configured correctly at {i+1}° array position\nNode Name: {mapNode.name}", this);
+        Debug.LogError($"Map Node isn't configured correctly at {i+1}° array position\nNode Name: {mapNode.name}", this);
         isValid = false;
         continue;
       }
+      
+      if (!mapNode.HasLevel)
+        continue;
       if (!Application.CanStreamedLevelBeLoaded(mapNode.Data.SceneName))
       {
         Debug.LogError($"Scene Name invalid in {i+1}° array position.\nNode Name: {mapNode.name}\n-Scene Name: {mapNode.Data.SceneName}", this);
