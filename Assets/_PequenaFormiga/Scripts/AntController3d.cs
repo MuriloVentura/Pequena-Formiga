@@ -1,29 +1,21 @@
-
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
-public class AntController3D : MonoBehaviour
+public partial class AntController3d : MonoBehaviour
 {
+    private CapsuleCollider capsule;
+
     [Header("Movement")]
     [SerializeField] private float walkSpeed = 3f;
     [SerializeField] private float runSpeed = 6f;
     [SerializeField] private float acceleration = 12f;
     [SerializeField] private float deceleration = 16f;
 
-    [Header("Climbing")]
+    
+    [Header("Input")]
     private Vector2 moveInput;
-    private Vector3 climbUp;
-    private Vector3 climbRight;
     private bool requireInputRelease;
-    [SerializeField] private float climbSpeed = 2f;
-    [SerializeField] private float climbDetectionDistance = 1.5f;
-    [SerializeField] private float surfaceOffset = 0.35f;
-
-    private bool isClimbing;
-    private Vector3 climbNormal;
-    private Vector3 climbPoint;
-    private bool previousUseGravity;
 
     [Header("References")]
     [SerializeField] private Transform cameraTransform;
@@ -38,6 +30,7 @@ public class AntController3D : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        capsule = GetComponent<CapsuleCollider>();
 
         rb.interpolation = RigidbodyInterpolation.Interpolate;
         rb.constraints |= RigidbodyConstraints.FreezeRotationX;
@@ -52,7 +45,7 @@ public class AntController3D : MonoBehaviour
             Keyboard.current.qKey.wasPressedThisFrame)
         {
             if (isClimbing)
-                StopClimbing();
+                TryTransitionToTop();
             else
                 TryStartClimbing();
         }
@@ -158,126 +151,4 @@ public class AntController3D : MonoBehaviour
             visual.rotation = targetRotation;
         }
     }
-
-    
-    private void TryStartClimbing()
-    {
-        Vector3 origin = transform.position + Vector3.up * 0.5f;
-
-        Vector3 direction = visual != null
-            ? visual.forward
-            : transform.forward;
-
-        if (!Physics.Raycast(
-            origin,
-            direction,
-            out RaycastHit hit,
-            climbDetectionDistance,
-            Physics.DefaultRaycastLayers,
-            QueryTriggerInteraction.Ignore))
-        {
-            return;
-        }
-
-        if (hit.collider.transform.IsChildOf(transform))
-            return;
-
-        isClimbing = true;
-
-        climbNormal = hit.normal;
-        climbPoint = hit.point;
-
-        // Define o eixo vertical sobre a superfície.
-        Vector3 referenceUp = cameraTransform != null
-            ? cameraTransform.up
-            : Vector3.up;
-
-        climbUp = Vector3.ProjectOnPlane(referenceUp, climbNormal);
-
-        // Em superfícies onde a referência é quase perpendicular,
-        // utiliza uma direção alternativa.
-        if (climbUp.sqrMagnitude < 0.01f)
-            climbUp = Vector3.ProjectOnPlane(
-                Vector3.forward,
-                climbNormal
-            );
-
-        climbUp.Normalize();
-
-        // Define o eixo lateral sobre a superfície.
-        climbRight = Vector3.Cross(
-            climbNormal,
-            climbUp
-        ).normalized;
-
-        previousUseGravity = rb.useGravity;
-        rb.useGravity = false;
-
-        rb.linearVelocity = Vector3.zero;
-        currentHorizontalVelocity = Vector3.zero;
-
-        // A frente do modelo aponta para cima da superfície,
-        // enquanto o eixo superior local fica alinhado à normal.
-        if (visual != null)
-        {
-            visual.rotation = Quaternion.LookRotation(
-                climbUp,
-                climbNormal
-            );
-        }
-    }
-
-
-    private void StopClimbing()
-    {
-        isClimbing = false;
-
-        rb.useGravity = previousUseGravity;
-
-        rb.linearVelocity = Vector3.zero;
-        currentHorizontalVelocity = Vector3.zero;
-
-        inputDirection = Vector3.zero;
-        moveInput = Vector2.zero;
-
-        IsRunning = false;
-        requireInputRelease = true;
-    }
-    
-    
-    
-    private void Climb()
-    {
-        // W/S sobem e descem; A/D movimentam lateralmente.
-        Vector3 movement =
-            climbRight * moveInput.x +
-            climbUp * moveInput.y;
-
-        movement = Vector3.ProjectOnPlane(
-            movement,
-            climbNormal
-        );
-
-        if (movement.sqrMagnitude > 1f)
-            movement.Normalize();
-
-        // Mantém o movimento controlado durante a escalada.
-        rb.linearVelocity = Vector3.zero;
-
-        rb.MovePosition(
-            rb.position +
-            movement * climbSpeed * Time.fixedDeltaTime
-        );
-
-        // A formiga acompanha a direção do movimento.
-        if (movement.sqrMagnitude > 0.001f && visual != null)
-        {
-            visual.rotation = Quaternion.LookRotation(
-                movement.normalized,
-                climbNormal
-            );
-        }
-    }
-
-
 }
