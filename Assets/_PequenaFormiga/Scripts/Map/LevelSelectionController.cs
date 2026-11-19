@@ -5,15 +5,13 @@ using UnityEngine.SceneManagement;
 
 public class LevelSelectionController : MonoBehaviour
 {
-  [SerializeField] private Transform player;
+  [SerializeField] private MapPlayer player;
   [SerializeField] private LevelTooltipController tooltip;
   [Tooltip("O primeiro elemento é o nó inicial")]
   [SerializeField] private MapNode[] allNodes;
 
-  private MapNode selectedLevel;
+  private MapNode currNode;
   private bool isLoading = false;
-
-  private PlayerController controls;
 
   void Awake()
   {
@@ -21,7 +19,7 @@ public class LevelSelectionController : MonoBehaviour
 
     if (!player)
     {
-      Debug.LogError("Player Transform not assigned", this);
+      Debug.LogError("Player not assigned", this);
       isValid = false;
     }
     if (!tooltip)
@@ -39,29 +37,22 @@ public class LevelSelectionController : MonoBehaviour
       enabled = false;
       return;
     }
-
-    controls = new PlayerController();
   }
 
   void OnEnable()
   {
-    if (controls == null)
+    if (!player)
       return;
-    controls.Map.Interact.performed += HandleConfirm; 
-    controls.Map.Enable();
+    player.OnConfirmInput += HandleInteract;
+    player.OnMoveInput += HandleMovement;
   }
 
   void OnDisable()
   {
-    if (controls == null)
+    if (!player)
       return;
-    controls.Map.Interact.performed -= HandleConfirm; 
-    controls.Map.Disable();
-  }
-
-  void OnDestroy()
-  {
-    controls?.Dispose();
+    player.OnConfirmInput -= HandleInteract;
+    player.OnMoveInput -= HandleMovement;
   }
 
   void Start()
@@ -82,28 +73,37 @@ public class LevelSelectionController : MonoBehaviour
 
   private void SelectLevel(MapNode node)
   {
-    player.position = node.StopPosition;
+    //TODO: Transformar essa função em uma parte do HandleMovement, que sera a parte de ligar o tooltip e nivel
+    player.SetPosition(node.StopPosition);
 
     if (!node.HasLevel)
     {
-      selectedLevel = null;
+      currNode = null;
       tooltip.Hide();
       return;
     }
-    selectedLevel = node;
+    currNode = node;
     tooltip.transform.position = node.TooltipAnchor.position;
     tooltip.Show(node.Data);
+
   }
 
-  private void HandleConfirm(InputAction.CallbackContext ctx)
+  private void HandleInteract()
   {
     if (isLoading)
       return;
-    if (!selectedLevel)
+    if (!currNode)
       return;
     
     isLoading = true;
-    SceneManager.LoadScene(selectedLevel.Data.SceneName);
+    SceneManager.LoadScene(currNode.Data.SceneName);
+  } 
+
+  private void HandleMovement(MapDirection direction)
+  {
+    if (isLoading)
+      return;
+    //TODO: Verificar se caminho é valido (outra função) e caso sim ligar função para MapPlayer
   } 
 
   private bool ValidateNodeArray()
