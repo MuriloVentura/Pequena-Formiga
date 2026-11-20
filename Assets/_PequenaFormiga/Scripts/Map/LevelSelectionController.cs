@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 public class LevelSelectionController : MonoBehaviour
@@ -11,6 +10,8 @@ public class LevelSelectionController : MonoBehaviour
   [SerializeField] private MapNode[] allNodes;
 
   private MapNode currNode;
+  private MapNode destinationNode;
+  
   private bool isLoading = false;
 
   void Awake()
@@ -45,6 +46,8 @@ public class LevelSelectionController : MonoBehaviour
       return;
     player.OnConfirmInput += HandleInteract;
     player.OnMoveInput += HandleMovement;
+    player.OnMoveFinished += HandleMoveFinished;
+    player.OnMoveStarted += HandleMoveStarted;
   }
 
   void OnDisable()
@@ -53,6 +56,8 @@ public class LevelSelectionController : MonoBehaviour
       return;
     player.OnConfirmInput -= HandleInteract;
     player.OnMoveInput -= HandleMovement;
+    player.OnMoveFinished -= HandleMoveFinished;
+    player.OnMoveStarted -= HandleMoveStarted;
   }
 
   void Start()
@@ -68,31 +73,31 @@ public class LevelSelectionController : MonoBehaviour
       startNode = allNodes[0];
     }
 
-    SelectLevel(startNode);
+    currNode = startNode;
+    destinationNode = startNode;
+    player.SetPosition(startNode.StopPosition);
+    HandleMoveFinished();
   }
 
-  private void SelectLevel(MapNode node)
+  private void HandleMoveStarted()
   {
-    //TODO: Transformar essa função em uma parte do HandleMovement, que sera a parte de ligar o tooltip e nivel
-    player.SetPosition(node.StopPosition);
+    tooltip.Hide();
+  }
+  private void HandleMoveFinished()
+  {
+    currNode = destinationNode;
 
-    if (!node.HasLevel)
-    {
-      currNode = null;
-      tooltip.Hide();
+    if (!currNode.HasLevel)
       return;
-    }
-    currNode = node;
-    tooltip.transform.position = node.TooltipAnchor.position;
-    tooltip.Show(node.Data);
-
+    tooltip.transform.position = destinationNode.TooltipAnchor.position;
+    tooltip.Show(destinationNode.Data);
   }
 
   private void HandleInteract()
   {
     if (isLoading)
       return;
-    if (!currNode)
+    if (!currNode || !currNode.HasLevel)
       return;
     
     isLoading = true;
@@ -103,9 +108,17 @@ public class LevelSelectionController : MonoBehaviour
   {
     if (isLoading)
       return;
-    //TODO: Verificar se caminho é valido (outra função) e caso sim ligar função para MapPlayer
-  } 
+    if (!currNode)
+      return;
+    
+    MapNode destination = currNode.GetNeighbor(direction);
+    if (!destination)
+      return;
 
+    destinationNode = destination;
+    player.MoveTo(destination.StopPosition);
+  } 
+  
   private bool ValidateNodeArray()
   {
     if (!(allNodes.Length > 0))

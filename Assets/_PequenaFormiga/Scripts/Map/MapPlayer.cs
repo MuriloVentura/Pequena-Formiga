@@ -4,10 +4,15 @@ using UnityEngine.InputSystem;
 
 public class MapPlayer : MonoBehaviour
 {
-  private PlayerController controls;
-
   public event Action<MapDirection> OnMoveInput;
   public event Action OnConfirmInput;
+  public event Action OnMoveStarted;
+  public event Action OnMoveFinished;
+
+  [Min(0.1f)][SerializeField] private float moveSpeed = 12f;
+  private PlayerController controls;
+  private Vector3 target;
+  private bool isMoving;
 
   private void Awake() 
   {
@@ -37,15 +42,33 @@ public class MapPlayer : MonoBehaviour
     controls?.Dispose();
   }
 
+  void Update()
+  {
+    if (!isMoving)
+      return;
+    transform.position = Vector3.MoveTowards(transform.position, target, moveSpeed * Time.deltaTime);
+
+    if (transform.position == target)
+    {
+      isMoving = false;
+      OnMoveFinished?.Invoke();
+    }
+  }
+
   private void HandleInteract(InputAction.CallbackContext ctx)
   {
+    if (isMoving)
+      return;
+
     OnConfirmInput?.Invoke();
   }
 
   private void HandleMove(InputAction.CallbackContext ctx)
   {
-    Vector2 input = ctx.ReadValue<Vector2>();
+    if (isMoving)
+      return;
 
+    Vector2 input = ctx.ReadValue<Vector2>();
     if (TryGetDirection(input, out MapDirection direction))
       OnMoveInput?.Invoke(direction);
   }
@@ -73,11 +96,17 @@ public class MapPlayer : MonoBehaviour
 
   public void MoveTo(Vector3 position)
   {
-    //TODO: Criar funcao para mover posição personagem com uma pequena animação (colocar animação em outra função com coroutine)
+    if (isMoving) 
+      return;
+    target = position;
+    isMoving = true;
+    OnMoveStarted?.Invoke();
+    //*Simple Animation runs on Update
   }
   
   public void SetPosition(Vector3 position)
   {
+    isMoving = false;
     transform.position = position;
   }
 }

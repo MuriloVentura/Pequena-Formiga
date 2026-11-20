@@ -360,6 +360,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b6289b32e51e72c46b66ce6189d64e94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapPlayer
+  moveSpeed: 12
 --- !u!1 &121517978
 GameObject:
   m_ObjectHideFlags: 0
@@ -48710,11 +48711,11 @@ MonoBehaviour:
   player: {fileID: 56729497}
   tooltip: {fileID: 917688980}
   allNodes:
+  - {fileID: 1861072889}
+  - {fileID: 595757207}
   - {fileID: 6067277801724134324}
   - {fileID: 160665427}
   - {fileID: 1170942096}
-  - {fileID: 595757207}
-  - {fileID: 1861072889}
   - {fileID: 1384917683}
   - {fileID: 1919302916}
   - {fileID: 1792818456}
